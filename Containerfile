@@ -6,6 +6,7 @@ COPY system-repo.conf /etc/portage/repos.conf/
 COPY make.conf /etc/portage/
 COPY system.use /etc/portage/package.use/SYSTEM.use
 COPY package.license /etc/portage/package.license
+
 # RUN emaint sync -a || emerge-webrsync --quiet
 
 ARG jobs=2
@@ -52,9 +53,9 @@ COPY fsroot-empty.tar.xz /root/
 COPY locale.gen /etc/
 RUN locale-gen --update
 
-FROM builder
-COPY entrypoint.bash /sbin/entrypoint
-ENTRYPOINT [ "/sbin/entrypoint" ]
+COPY scripts /usr/share/SYSTEM
+RUN cd /usr/bin; for f in ../share/SYSTEM/*.bash; do [[ -x "$f" ]] && { bn="$(basename $f)"; ln -s "$f" "${bn%.bash}"; } || true; done
+ENTRYPOINT [ "/bin/entrypoint" ]
 
 # RUN eselect news read --quiet \
 #  && eselect news purge
