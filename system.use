@@ -1,0 +1,13 @@
+# */*
+sys-libs/readline utils
+sys-libs/timezone-data leaps-timezone
+sys-apps/systemd fido2 importd -sysv-utils
+sys-auth/pambase -passwdqc
+app-misc/ca-certificates cacert
+sys-fs/lvm2 lvm
+sys-apps/util-linux tty-helpers
+dev-lang/ocaml flambda
+sys-boot/grub -secureboot
+dev-vcs/git -webdav
+sys-kernel/linux-firmware compress-zstd
+sys-kernel/vanilla-sources symlink
