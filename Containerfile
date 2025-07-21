@@ -3,11 +3,11 @@ FROM gentoo:nomultilib-systemd as builder
 # bootstrap the builder
 RUN mkdir -p /etc/portage/repos.conf
 COPY system-repo.conf /etc/portage/repos.conf/
+RUN emaint sync -a || emerge-webrsync --quiet
+
 COPY make.conf /etc/portage/
 COPY system.use /etc/portage/package.use/SYSTEM.use
 COPY package.license /etc/portage/package.license
-
-# RUN emaint sync -a || emerge-webrsync --quiet
 
 ARG jobs=2
 # install the gentoolkit
@@ -24,8 +24,8 @@ RUN cd /usr/src/linux \
 	&& for f in arch/x86/configs/SYSTEM/*.config; do make SYSTEM/"$( basename ${f} )"; done
 
 # install the firmware
-RUN emerge --pretend sys-kernel/linux-firmware sys-firmware/intel-microcode \
-	&& emerge --jobs=$jobs sys-kernel/linux-firmware sys-firmware/intel-microcode
+RUN emerge --pretend sys-kernel/linux-firmware sys-firmware/intel-microcode net-wireless/wireless-regdb \
+	&& emerge --jobs=$jobs sys-kernel/linux-firmware sys-firmware/intel-microcode net-wireless/wireless-regdb
 
 RUN echo 'sys-apps/sysvinit-3.09' >> /etc/portage/profile/package.provided
 RUN echo 'app-emulation/xen-tools-4.20.0' >> /etc/portage/profile/package.provided
