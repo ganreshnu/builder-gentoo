@@ -51,15 +51,26 @@ Main() {
 	set - "${argv[@]}"
 
 	# configure everything
-	/usr/share/SYSTEM/kconfig.bash
+	if [[ -f "${args[fsroot]}"/kernel.config ]]; then
+		[[ -z "${args[quiet]}" ]] && Print 4 kernel 'already configured'
+		cp "${args[fsroot]}"/kernel.config /usr/src/linux/.config
+	else
+		/usr/share/SYSTEM/kconfig.bash
+		cp /usr/src/linux/.config "${args[fsroot]}"/kernel.config
+	fi
+
+	# kernel may be built in a dev environment
+	[[ -f "${args[fsroot]}"/efi/vmlinuz ]] && { [[ -z "${args[quiet]}" ]] && Print 4 kernel 'already built'; } && return 0
+
+	SetupRoot
 
 	# build and install the kernel
-	[[ -z "${args[quiet]}" ]] && Print 4 info "building and installing kernel"
+	[[ -z "${args[quiet]}" ]] && Print 4 kernel 'building and installing'
 	local -r ipath="$(mktemp -d)"
 	pushd /usr/src/linux >/dev/null
 	# build and install the modules
 	echo "${args[quiet]}" | xargs make -j"${args[nproc]}"
-	echo "${args[quiet]}" | xargs make INSTALL_MOD_PATH="$ipath" INSTALL_MOD_STRIP=1 modules_install
+	echo "${args[quiet]}" | xargs make INSTALL_MOD_PATH="$ipath"/usr INSTALL_MOD_STRIP=1 modules_install
 	echo "${args[quiet]}" | xargs make INSTALL_PATH="$ipath"/efi install
 	popd >/dev/null #/usr/src/linux
 

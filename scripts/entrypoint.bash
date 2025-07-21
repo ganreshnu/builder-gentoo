@@ -9,6 +9,7 @@ Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] [FILENAME]
 Options:
   --quiet                    Run with limited output.
   --nproc INT                Number of threads to use.
+  --jobs INT                 Number of jobs to split threads among.
   --fsroot DIRECTORY         Directory in which to install the built kernel.
   --help                     Display this message and exit.
 
@@ -20,7 +21,9 @@ Main() {
 		[quiet]=
 		[kconfigs-dir]=kconfigs
 		[nproc]=$(nproc)
+		[jobs]=2
 		[fsroot]="${FSROOT}"
+		[distname]=myosimage
 	)
 	local argv=() cmd=0
 	while [[ $# > 0 ]]; do
@@ -38,18 +41,35 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[nproc]="$value"
 				;;
+			--jobs* )
+				local value= count=0
+				ExpectArg value count "$@"; shift $count
+				args[jobs]="$value"
+				;;
 			--fsroot* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
 				args[fsroot]="$value"
 				;;
-			kconfig|kernel|packages|initramfs )
+			--distname* )
+				local value= count=0
+				ExpectArg value count "$@"; shift $count
+				args[distname]="$value"
+				;;
+			kconfig|kernel|packages|initramfs|diskimage )
 				cmd=1
 				break;
+				;;
+			rmpkg )
+				cmd=2
+				break
 				;;
 			--help )
 				Usage
 				return 0
+				;;
+			-- )
+				shift; break
 				;;
 			* )
 				argv+=( "$1" )
@@ -69,7 +89,17 @@ Main() {
 	export BUILDER_QUIET="${args[quiet]}"
 	export BUILDER_KCONFIGS_DIR="${args[kconfigs-dir]}"
 	export BUILDER_FSROOT="${args[fsroot]}"
+	export BUILDER_JOBS="${args[jobs]}"
+	export BUILDER_DISTNAME="${args[distname]}"
 
-	exec "$@"
+	[[ $cmd == 1 ]] && exec "$@" || "$@"
+}
+rmpkg() {
+	local -r tempfile="$(mktemp)"
+	mv /var/db/repos/system/"$1" "${tempfile}".system
+	mv /var/db/repos/gentoo/"$1" "${tempfile}".gentoo
+	eclean packages
+	mv "${tempfile}".system /var/db/repos/system/"$1"
+	mv "${tempfile}".gentoo /var/db/repos/gentoo/"$1"
 }
 Main "$@"

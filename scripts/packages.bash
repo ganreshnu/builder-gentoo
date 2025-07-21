@@ -4,7 +4,7 @@ set -euo pipefail
 
 Usage() {
 	cat <<EOD
-Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] [FILENAME]
+Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] PACKAGES
 
 Options:
   --quiet                    Run with limited output.
@@ -19,9 +19,9 @@ EOD
 }
 Main() {
 	local -A args=(
-		[quiet]=
+		[quiet]="${BUILDER_QUIET}"
 		[nproc]="${BUILDER_NPROC}"
-		[jobs]=2
+		[jobs]="${BUILDER_JOBS}"
 		[fsroot]="${BUILDER_FSROOT}"
 		[pretend]=
 	)
@@ -62,20 +62,24 @@ Main() {
 	argv+=( "$@" )
 	set - "${argv[@]}"
 
-	/usr/share/SYSTEM/kernel.bash
+	# /usr/share/SYSTEM/kernel.bash
 	compgen -G *.use >/dev/null && cp *.use /etc/portage/package.use/
 
-	local world=(
-		net-wireless/wireless-regdb
-		sys-apps/shadow
-		sys-apps/systemd
-		app-shells/bash
-	)
-	[[ -f world ]] && mapfile -t world <world
-
-	Print 4 info "building packages with emerge --root=${args[fsroot]} --jobs=${args[jobs]} $* ${world[*]}"
+	local world=()
+	argv=()
+	for p in "$@"; do
+		if [[ "${p}" =~ ^@.* ]]; then
+			local -a packages
+			mapfile -t packages <"${p#@}"
+			world+=( "${packages[@]}" )
+		else
+			world+=( "${p}" )
+		fi
+	done
+	[[ -z "${args[quiet]}" ]] && Print 4 info "building packages with emerge --root=${args[fsroot]} --jobs=${args[jobs]} ${world[*]}"
+	[[ -z "${args[pretend]}" ]] && SetupRoot
 	# install the packages
 	MAKEOPTS="-j$(( ${args[nproc]} / ${args[jobs]} ))" KERNEL_DIR=/usr/src/linux \
-		echo "${args[pretend]}" "$@" "${world[@]}" |xargs emerge --root="${args[fsroot]}" --with-bdeps-auto=n --with-bdeps=n --noreplace --jobs=${args[jobs]}
+		echo "${args[quiet]}" "${args[pretend]}" "${world[@]}" |xargs emerge --root="${args[fsroot]}" --with-bdeps-auto=n --with-bdeps=n --noreplace --jobs=${args[jobs]}
 }
 Main "$@"

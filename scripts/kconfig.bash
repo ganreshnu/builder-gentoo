@@ -10,6 +10,8 @@ Options:
   --quiet                    Run with limited output.
   --kconfigs-dir DIRECTORY   Directory containing kconfig files.
   --export                   Export the entire kernel configuration to stdout.
+	--skip-kconfigs            Edit the specified configuration skipping the
+                             kconfigs directory.
   --help                     Display this message and exit.
 
 Apply kernel configuration fragments or edit the specified fragment file.
@@ -20,6 +22,7 @@ Main() {
 		[quiet]=${BUILDER_QUIET}
 		[kconfigs-dir]=${BUILDER_KCONFIGS_DIR}
 		[export]=0
+		[skip-kconfigs]=0
 	)
 	local argv=()
 	while [[ $# > 0 ]]; do
@@ -36,6 +39,9 @@ Main() {
 				args[export]=1
 				args[quiet]='--quiet'
 				;;
+			--skip-kconfigs )
+				args[skip-kconfigs]=1
+				;;
 			--help )
 				Usage
 				return 0
@@ -49,15 +55,16 @@ Main() {
 	argv+=( "$@" )
 	set - "${argv[@]}"
 
-	# make the ones in the config dir
-	[[ -z "${args[quiet]}" ]] && Print 4 info "applying kconfig fragments from ${args[kconfigs-dir]}"
-	pushd "${args[kconfigs-dir]}" >/dev/null
-	for i in *.config; do
-		[[ "$i" == "*.config" ]] && break
-		cp "$i"  /usr/src/linux/arch/x86/configs/
-		echo "${args[quiet]}" "$i" |xargs make -C /usr/src/linux
-	done
-	popd >/dev/null #args[kconfigs-dir]
+	if [[ ${args[skip-kconfigs]} == 0 ]]; then
+		[[ -z "${args[quiet]}" ]] && Print 4 info "applying kconfig fragments from ${args[kconfigs-dir]}"
+		pushd "${args[kconfigs-dir]}" >/dev/null
+		for i in *.config; do
+			[[ "$i" == "*.config" ]] && break
+			cp "$i"  /usr/src/linux/arch/x86/configs/
+			echo "${args[quiet]}" "$i" |xargs make -C /usr/src/linux
+		done
+		popd >/dev/null #args[kconfigs-dir]
+	fi
 
 	if [[ $# > 0 ]]; then
 		[[ ! -f "$1" ]] && touch "$1"
