@@ -52,6 +52,10 @@ Main() {
 
 	local -r excludes=(
 		--exclude='usr/lib/systemd/system-environment-generators/10-gentoo-path' 
+		--exclude='efi/kconfig.zst'
+		--exclude='efi/System.map'
+		--exclude='usr/share/factory/etc/locale.conf'
+		--exclude='usr/share/factory/etc/vconsole.conf'
 	)
 
 	local -r tempdir="$(mktemp -d)"

@@ -68,7 +68,6 @@ Main() {
 		sys-apps/kbd
 		app-shells/bash
 		sys-apps/systemd
-		sys-apps/coreutils
 	)
 	/usr/share/SYSTEM/packages.bash "${world[@]}"
 
@@ -109,15 +108,10 @@ Main() {
 	popd >/dev/null #${args[fsroot]}
 
 	systemd-sysusers --root="${tempdir}"
-	systemd-tmpfiles --root="${tempdir}" --create
-	systemd-tmpfiles --root="${tempdir}" --remove
+	# systemd-tmpfiles --root="${tempdir}" --create
+	# systemd-tmpfiles --root="${tempdir}" --remove
+	systemd-machine-id-setup --root="${tempdir}"
 	[[ -n "${args[rootpw]}" ]] && echo "root:${args[rootpw]}" |chpasswd --prefix "${tempdir}" --encrypted
-
-	if [[ ! -f "${tempdir}"/etc/machine-id ]]; then
-		>&2 Print 1 error "machine-id remains unset. generating one now"
-		systemd-machine-id-setup --root="${tempdir}"
-		ls -lahR "${tempdir}"/etc/
-	fi
 
 	[[ -z "${args[quiet]}" ]] && Print 5 initramfs "uncompressed size is $(du -sh $tempdir |cut -f1)"
 	# create cpio
