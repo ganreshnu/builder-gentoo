@@ -50,12 +50,16 @@ Main() {
 	argv+=( "$@" )
 	set - "${argv[@]}"
 
+	local -r excludes=(
+		--exclude='usr/lib/systemd/system-environment-generators/10-gentoo-path' 
+	)
+
 	local -r tempdir="$(mktemp -d)"
 	tar --directory="${tempdir}" --extract --keep-directory-symlink --file=/root/fsroot-empty.tar.xz
-	tar --directory="${args[fsroot]}" --create --preserve-permissions efi usr \
+	tar --directory="${args[fsroot]}" --create --preserve-permissions "${excludes[@]}" efi usr \
 		| tar --directory="${tempdir}" --extract --keep-directory-symlink
 
-	mkdir -p "${tempdir}"/{dev,proc,run,sys,tmp}
+	mkdir -p "${tempdir}"/{dev,etc,proc,run,sys,tmp}
 	local -r grub=1
 	if [[ $grub == 1 ]]; then
 		mkdir -p "${tempdir}/efi/EFI/BOOT"

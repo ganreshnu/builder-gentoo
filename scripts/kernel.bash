@@ -53,7 +53,7 @@ Main() {
 	# configure everything
 	if [[ -f "${args[fsroot]}"/efi/kconfig.zst ]]; then
 		[[ -z "${args[quiet]}" ]] && Print 4 kernel 'already configured'
-		zstd -d "${args[fsroot]}"/efi/kconfig.zst -o /usr/src/linux/.config
+		zstd -q -f -d "${args[fsroot]}"/efi/kconfig.zst -o /usr/src/linux/.config
 	else
 		/usr/share/SYSTEM/kconfig.bash
 		mkdir -p "${args[fsroot]}"/efi
