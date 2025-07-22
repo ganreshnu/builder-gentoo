@@ -50,26 +50,32 @@ Main() {
 	argv+=( "$@" )
 	set - "${argv[@]}"
 
+	local -r tempdir="$(mktemp -d)"
+	tar --directory="${tempdir}" --extract --keep-directory-symlink --file=/root/fsroot-empty.tar.xz
+	tar --directory="${args[fsroot]}" --create --preserve-permissions efi usr \
+		| tar --directory="${tempdir}" --extract --keep-directory-symlink
+
+	mkdir -p "${tempdir}"/{dev,proc,run,sys,tmp}
 	local -r grub=1
 	if [[ $grub == 1 ]]; then
-		mkdir -p "${args[fsroot]}/efi/EFI/BOOT"
-		grub-mkstandalone --format=x86_64-efi --output "${args[fsroot]}/efi/EFI/BOOT/BOOTX64.EFI" \
+		mkdir -p "${tempdir}/efi/EFI/BOOT"
+		grub-mkstandalone --format=x86_64-efi --output "${tempdir}/efi/EFI/BOOT/BOOTX64.EFI" \
 			"/boot/grub/grub.cfg=/boot/grub.cfg" "/boot/xen.gz=/boot/xen-4.20.0.gz" \
 			"/boot/amd-uc.bin=/boot/amd-uc.bin" "/boot/intel-uc.bin=/boot/intel-uc.bin"
 	else
-		SYSTEMD_RELAX_ESP_CHECKS=1 bootctl --root="${args[fsroot]}" --install-source=host --no-variables install
+		SYSTEMD_RELAX_ESP_CHECKS=1 bootctl --root="${tempdir}" --install-source=host --no-variables install
 	fi
 
-	cp /boot/*-uc.img "${args[fsroot]}/efi/"
-	mkdir -p "${args[fsroot]}/efi/grub"
-	cp grub.cfg "${args[fsroot]}/efi/grub/"
-	Print 4 info "/efi is $(du -sh ${args[fsroot]}/efi |cut -f1)"
+	cp /boot/*-uc.img "${tempdir}/efi/"
+	mkdir -p "${tempdir}/efi/grub"
+	cp grub.cfg "${tempdir}/efi/grub/"
+	Print 4 info "/efi is $(du -sh ${tempdir}/efi |cut -f1)"
+	Print 4 info "/usr is $(du -sh ${tempdir}/usr |cut -f1)"
 
-	# tar --directory="${args[fsroot]}" --create --preserve-permissions --file="${snapshot}" usr
-	# tar --directory="${args[fsroot]}" --extract --keep-directory-symlink --file="${snapshot}"
-
-	rm -f "${args[distname]}-diskimage".*
 	local -r archivename="${args[distname]}-diskimage.raw"
-	systemd-repart --definitions=repart.d --copy-source="${args[fsroot]}" --empty=create --size=auto --split="${args[split]}" "$archivename"
+	rm -f "${args[distname]}-diskimage".*
+	systemd-repart --definitions=repart.d --copy-source="${tempdir}" --empty=create --size=auto --split="${args[split]}" "$archivename"
+
+	rm -rf "${tempdir}"
 }
 Main "$@"

@@ -51,12 +51,13 @@ Main() {
 	set - "${argv[@]}"
 
 	# configure everything
-	if [[ -f "${args[fsroot]}"/kernel.config ]]; then
+	if [[ -f "${args[fsroot]}"/efi/kconfig.zst ]]; then
 		[[ -z "${args[quiet]}" ]] && Print 4 kernel 'already configured'
-		cp "${args[fsroot]}"/kernel.config /usr/src/linux/.config
+		zstd -d "${args[fsroot]}"/efi/kconfig.zst -o /usr/src/linux/.config
 	else
 		/usr/share/SYSTEM/kconfig.bash
-		cp /usr/src/linux/.config "${args[fsroot]}"/kernel.config
+		mkdir -p "${args[fsroot]}"/efi
+		zstd /usr/src/linux/.config -o "${args[fsroot]}"/efi/kconfig.zst
 	fi
 
 	# kernel may be built in a dev environment

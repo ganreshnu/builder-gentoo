@@ -79,7 +79,7 @@ Main() {
 	[[ -z "${args[quiet]}" ]] && Print 4 info "building packages with emerge --root=${args[fsroot]} --jobs=${args[jobs]} ${world[*]}"
 	[[ -z "${args[pretend]}" ]] && SetupRoot
 	# install the packages
-	MAKEOPTS="-j$(( ${args[nproc]} / ${args[jobs]} ))" KERNEL_DIR=/usr/src/linux \
-		echo "${args[quiet]}" "${args[pretend]}" "${world[@]}" |xargs emerge --root="${args[fsroot]}" --with-bdeps-auto=n --with-bdeps=n --noreplace --jobs=${args[jobs]}
+	echo "${args[quiet]}" "${args[pretend]}" "${world[@]}" |MAKEOPTS="-j$(( ${args[nproc]} / ${args[jobs]} ))" KERNEL_DIR=/usr/src/linux xargs \
+		emerge --root="${args[fsroot]}" --with-bdeps-auto=n --with-bdeps=n --noreplace --jobs=${args[jobs]}
 }
 Main "$@"

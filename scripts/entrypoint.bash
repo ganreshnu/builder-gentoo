@@ -96,10 +96,10 @@ Main() {
 }
 rmpkg() {
 	local -r tempfile="$(mktemp)"
-	mv /var/db/repos/system/"$1" "${tempfile}".system
-	mv /var/db/repos/gentoo/"$1" "${tempfile}".gentoo
+	mv /var/db/repos/system/"$1" "${tempfile}".system || true
+	mv /var/db/repos/gentoo/"$1" "${tempfile}".gentoo || true
 	eclean packages
-	mv "${tempfile}".system /var/db/repos/system/"$1"
-	mv "${tempfile}".gentoo /var/db/repos/gentoo/"$1"
+	mv "${tempfile}".system /var/db/repos/system/"$1" || true
+	mv "${tempfile}".gentoo /var/db/repos/gentoo/"$1" || true
 }
 Main "$@"
