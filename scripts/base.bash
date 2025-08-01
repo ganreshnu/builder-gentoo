@@ -8,7 +8,7 @@ Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] PACKAGES
 
 Options:
   --quiet                    Run with limited output.
-  --fsroot DIRECTORY         Directory in which to install the built kernel.
+  --build-dir DIRECTORY      Directory in which to install the built kernel.
   --output-dir DIRECTORY     Directory in which to store the output
                              artifacts. Defaults to './output'.
   --nproc INT                Number of threads to use.
@@ -33,7 +33,7 @@ Main() {
 			--build-dir* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
-				args[fsroot]="$value"
+				args[build-dir]="$value"
 				;;
 			--output-dir* )
 				local value= count=0

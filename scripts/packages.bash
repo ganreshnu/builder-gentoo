@@ -44,7 +44,7 @@ Main() {
 			--build-dir* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
-				args[fsroot]="$value"
+				args[build-dir]="$value"
 				;;
 			--pretend )
 				args[pretend]='--pretend'

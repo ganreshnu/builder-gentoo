@@ -8,7 +8,7 @@ Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] PACKAGES
 
 Options:
   --quiet                    Run with limited output.
-  --fsroot DIRECTORY         Directory in which to preserve the build.
+  --build-dir DIRECTORY      Directory in which to preserve the build.
   --help                     Display this message and exit.
 
 Builds and installs the packages.
@@ -17,7 +17,7 @@ EOD
 Main() {
 	local -A args=(
 		[quiet]="${BUILDER_QUIET}"
-		[fsroot]=
+		[build-dir]=
 	)
 	local argv=()
 	while [[ $# > 0 ]]; do
@@ -25,10 +25,10 @@ Main() {
 			--quiet )
 				args[quiet]='--quiet'
 				;;
-			--fsroot* )
+			--build-dir* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
-				args[fsroot]="$value"
+				args[build-dir]="$value"
 				;;
 			--help )
 				Usage
@@ -48,9 +48,9 @@ Main() {
 		'--volume="${HOME}"/.cache/binpkgs:/var/cache/binpkgs'
 		'--volume="${HOME}"/.var/db/repos:/var/db/repos'
 	)
-	[[ -n "${args[fsroot]}" ]] && pmargs+=(
+	[[ -n "${args[build-dir]}" ]] && pmargs+=(
 		'--env=BUILD_DIR=/build'
-		'--volume='"${args[fsroot]}"':/build'
+		'--volume='"${args[build-dir]}"':/build'
 	)
 	local pmcmd='podman run --volume="${PWD}":"${PWD}" --workdir="${PWD}" --rm --interactive --tty'
 

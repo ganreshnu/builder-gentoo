@@ -45,7 +45,7 @@ Main() {
 			--build-dir* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
-				args[fsroot]="$value"
+				args[build-dir]="$value"
 				;;
 			--rootpw* )
 				local value= count=0
@@ -67,47 +67,37 @@ Main() {
 
 	if [[ -f "${args[output-dir]}"/initramfs.cpio.zst ]]; then
 		[[ -z "${args[quiet]}" ]] && Print 4 info 'initramfs already built'
-		mkdir -p "${args[fsroot]}"/efi
-		cp "${args[output-dir]}"/initramfs.cpio.zst "${args[fsroot]}"/efi/
+		mkdir -p "${args[build-dir]}"/efi
+		cp "${args[output-dir]}"/initramfs.cpio.zst "${args[build-dir]}"/efi/
 		return 0
 	fi
 
 	/usr/share/SYSTEM/base.bash
 
-	# local -r ilist=( bin lib lib64 sbin usr init )
-	local -r ilist=( bin lib lib64 sbin usr )
-	local -r excludes=(
-		--exclude='usr/lib/systemd/system-environment-generators/10-gentoo-path' 
-	)
-	local -r tempdir="$(mktemp -d)"
-	tar --directory="${args[fsroot]}" --create --preserve-permissions "${excludes[@]}" "${ilist[@]}" \
-		| tar --directory="$tempdir" --extract
-
 	# copy in overlay
-	[[ -d initramfs ]] && tar --directory=initramfs --create --preserve-permissions . \
-			| tar --directory="${tempdir}" --extract --keep-directory-symlink
+	[[ -d initramfs.usr ]] && tar --directory=initramfs.usr --create --preserve-permissions . \
+			| tar --directory="${args[build-dir]}" --extract --keep-directory-symlink
 
 	# link an init
-	pushd "${tempdir}" >/dev/null
+	pushd "${args[build-dir]}" >/dev/null
 	mkdir -p etc
 	ln -sf /usr/lib/os-release etc/initrd-release
 	ln -sf /usr/lib/systemd/systemd init
-	popd >/dev/null #${args[fsroot]}
+	popd >/dev/null #${args[build-dir]}
 
-	systemd-sysusers --root="${tempdir}"
+	systemd-sysusers --root="${args[build-dir]}"
 	# systemd-tmpfiles --root="${tempdir}" --create
 	# systemd-tmpfiles --root="${tempdir}" --remove
-	systemd-machine-id-setup --root="${tempdir}"
-	[[ -n "${args[rootpw]}" ]] && echo "root:${args[rootpw]}" |chpasswd --prefix "${tempdir}" --encrypted
+	systemd-machine-id-setup --root="${args[build-dir]}"
+	[[ -n "${args[rootpw]}" ]] && echo "root:${args[rootpw]}" |chpasswd --prefix "${args[build-dir]}" --encrypted
 
-	[[ -z "${args[quiet]}" ]] && Print 5 initramfs "uncompressed size is $(du -sh $tempdir |cut -f1)"
+	[[ -z "${args[quiet]}" ]] && Print 5 initramfs "uncompressed size is $(du -sh ${args[build-dir]} |cut -f1)"
 	# create cpio
 	pushd /usr/src/linux >/dev/null
-	usr/gen_initramfs.sh -o /dev/stdout "$tempdir" \
-		| zstd --compress --stdout > "${args[fsroot]}/efi/initramfs.cpio.zst"
+	usr/gen_initramfs.sh -o /dev/stdout "${args[build-dir]}" \
+		| zstd --compress --stdout > "${args[build-dir]}/efi/initramfs.cpio.zst"
 	popd >/dev/null #/usr/src/linux/
-	rm -fr "$tempdir"
-	cp "${args[fsroot]}"/efi/initramfs.cpio.zst "${args[output-dir]}"/
+	cp "${args[build-dir]}"/efi/initramfs.cpio.zst "${args[output-dir]}"/
 }
 Main "$@"
 
