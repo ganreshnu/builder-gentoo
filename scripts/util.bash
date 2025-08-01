@@ -16,8 +16,11 @@ ExpectArg() {
 	v="${1#*=}"
 }
 SetupRoot() {
-	tar --directory="${args[fsroot]}" --extract --file=/root/fsroot-empty.tar.xz
+	tar --directory="${args[build-dir]}" --extract --file=/root/fsroot-empty.tar.xz
 }
 Define() {
 	IFS=$'\n' read -r -d '' ${1} ||true
+}
+KVersion() {
+	make --directory=/usr/src/linux --quiet kernelversion
 }

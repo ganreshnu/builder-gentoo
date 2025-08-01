@@ -82,9 +82,9 @@ Main() {
 
 	# create the kernel archive cache file
 	tar --directory="$ipath" --create --preserve-permissions --zstd --file="${args[output-dir]}"/kernel.tar.zst .
+	rm -r "$ipath"
 
 	ExtractKernel
-	rm -r "$ipath"
 }
 ExtractKernel() {
 	tar --directory="${args[build-dir]}" --extract --keep-directory-symlink --file="${args[output-dir]}"/kernel.tar.zst

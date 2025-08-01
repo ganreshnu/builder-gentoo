@@ -11,7 +11,7 @@ Options:
   --output-dir DIRECTORY     Directory in which to store the output
                              artifacts. Defaults to './output'.
   --nproc INT                Number of threads to use.
-  --fsroot DIRECTORY         Directory in which to install the built kernel.
+  --build-dir DIRECTORY      Directory in which to install the built kernel.
   --rootpw PASSWORD          Set a root password for debug purposes.
   --help                     Display this message and exit.
 
@@ -23,7 +23,7 @@ Main() {
 		[quiet]="${BUILDER_QUIET}"
 		[output-dir]="${BUILDER_OUTPUT_DIR}"
 		[nproc]="${BUILDER_NPROC}"
-		[fsroot]="${BUILDER_FSROOT}"
+		[build-dir]="${BUILDER_BUILD_DIR}"
 		[rootpw]=
 	)
 	local argv=()
@@ -42,7 +42,7 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[nproc]="$value"
 				;;
-			--fsroot* )
+			--build-dir* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
 				args[fsroot]="$value"
@@ -72,19 +72,7 @@ Main() {
 		return 0
 	fi
 
-	local world=(
-		sys-apps/shadow
-		sys-apps/kbd
-		app-shells/bash
-		sys-apps/systemd
-	)
-	/usr/share/SYSTEM/packages.bash "${world[@]}"
-
-	# generate the locales
-	#FIXME: this maybe should be in packages.bash?
-	local locale_config_file=
-	[[ -f locale.gen ]] && locale_config_file=locale.gen
-	echo "${args[quiet]}" |xargs locale-gen --destdir "${args[fsroot]}" --config "${locale_config_file:-/etc/locale.gen}" --jobs "${args[nproc]}"
+	/usr/share/SYSTEM/base.bash
 
 	# local -r ilist=( bin lib lib64 sbin usr init )
 	local -r ilist=( bin lib lib64 sbin usr )

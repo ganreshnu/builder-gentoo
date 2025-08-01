@@ -20,7 +20,7 @@ EOD
 Main() {
 	local -A args=(
 		[quiet]="${BUILDER_QUIET}"
-		[build-dir]="${BUILDER_FSROOT}"
+		[build-dir]="${BUILDER_BUILD_DIR}"
 		[output-dir]="${BUILDER_OUTPUT_DIR}"
 		[nproc]="${BUILDER_NPROC}"
 	)
@@ -78,9 +78,17 @@ Main() {
 	[[ -f locale.gen ]] && locale_config_file=locale.gen
 	echo "${args[quiet]}" |xargs locale-gen --destdir "${args[build-dir]}" --config "${locale_config_file:-/etc/locale.gen}" --jobs "${args[nproc]}"
 
+	# copy in base.usr/*
+	[[ -z "${args[quiet]}" ]] && Print 3 base "copying in base.usr/"
+	[[ -d base.usr ]] && tar --directory="base.usr" --create --preserve-permissions . \
+		| tar --directory="${args[build-dir]}/usr" --extract --keep-directory-symlink 
+
 	local -r ilist=( bin lib lib64 sbin usr )
 	local -r excludes=(
-		--exclude='usr/lib/systemd/system-environment-generators/10-gentoo-path' 
+		--exclude=usr/lib/systemd/system-environment-generators/10-gentoo-path
+		--exclude=usr/lib/modules
+		--exclude=usr/share/factory/etc/locale.conf
+		--exclude=usr/share/factory/etc/vconsole.conf
 	)
 	tar --directory="${args[build-dir]}" --create --preserve-permissions \
 		--zstd --file="${args[output-dir]}"/base.tar.zst \
