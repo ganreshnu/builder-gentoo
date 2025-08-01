@@ -10,7 +10,7 @@ Options:
   --quiet                    Run with limited output.
   --nproc INT                Number of threads to use.
   --jobs INT                 Number of jobs to split threads among.
-  --fsroot DIRECTORY         Directory in which to install the built kernel.
+  --build-dir DIRECTORY      Directory in which to install the built packages.
   --pretend                  Don't really install anything.
   --help                     Display this message and exit.
 
@@ -22,7 +22,7 @@ Main() {
 		[quiet]="${BUILDER_QUIET}"
 		[nproc]="${BUILDER_NPROC}"
 		[jobs]="${BUILDER_JOBS}"
-		[fsroot]="${BUILDER_FSROOT}"
+		[build-dir]="${BUILDER_BUILD_DIR}"
 		[pretend]=
 	)
 	local argv=()
@@ -41,7 +41,7 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[jobs]="$value"
 				;;
-			--fsroot* )
+			--build-dir* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
 				args[fsroot]="$value"
@@ -76,10 +76,10 @@ Main() {
 			world+=( "${p}" )
 		fi
 	done
-	[[ -z "${args[quiet]}" ]] && Print 4 info "building packages with emerge --root=${args[fsroot]} --jobs=${args[jobs]} ${world[*]}"
+	[[ -z "${args[quiet]}" ]] && Print 4 info "building packages with emerge --root=${args[build-dir]} --jobs=${args[jobs]} ${world[*]}"
 	[[ -z "${args[pretend]}" ]] && SetupRoot
 	# install the packages
 	echo "${args[quiet]}" "${args[pretend]}" "${world[@]}" |MAKEOPTS="-j$(( ${args[nproc]} / ${args[jobs]} ))" KERNEL_DIR=/usr/src/linux xargs \
-		emerge --root="${args[fsroot]}" --with-bdeps-auto=n --with-bdeps=n --noreplace --jobs=${args[jobs]}
+		emerge --root="${args[build-dir]}" --with-bdeps-auto=n --with-bdeps=n --noreplace --jobs=${args[jobs]}
 }
 Main "$@"

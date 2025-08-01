@@ -9,9 +9,10 @@ Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] [FILENAME]
 Options:
   --output-dir DIRECTORY     Directory in which to store the output
                              artifacts. Defaults to './output'.
+  --build-dir DIRECTORY      Directory in which packages are built and
+                             installed.
   --quiet                    Run with limited output.
   --nproc INT                Number of threads to use.
-  --fsroot DIRECTORY         Directory in which to install the built kernel.
   --help                     Display this message and exit.
 
 Builds the kernel.
@@ -21,7 +22,7 @@ Main() {
 	local -A args=(
 		[quiet]="${BUILDER_QUIET}"
 		[nproc]="${BUILDER_NPROC}"
-		[fsroot]="${BUILDER_FSROOT}"
+		[build-dir]="${BUILDER_BUILD_DIR}"
 		[output-dir]="${BUILDER_OUTPUT_DIR}"
 	)
 	local argv=()
@@ -35,15 +36,15 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[output-dir]="$value"
 				;;
+			--build-dir* )
+				local value= count=0
+				ExpectArg value count "$@"; shift $count
+				args[build-dir]="$value"
+				;;
 			--nproc* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
 				args[nproc]="$value"
-				;;
-			--fsroot* )
-				local value= count=0
-				ExpectArg value count "$@"; shift $count
-				args[fsroot]="$value"
 				;;
 			--help )
 				Usage
@@ -58,12 +59,11 @@ Main() {
 	argv+=( "$@" )
 	set - "${argv[@]}"
 
-	[[ ! -d "${args[output-dir]}" ]] && { >&2 Print 1 kconfig "output directory '${args[output-dir]}' could not be found."; return 1; }
+	[[ ! -d "${args[output-dir]}" ]] && { >&2 Print 1 kernel "output directory '${args[output-dir]}' could not be found."; return 1; }
 
 	if [[ -f "${args[output-dir]}"/kernel.tar.zst ]]; then
 		[[ -z "${args[quiet]}" ]] && Print 4 kernel 'already built'
-		tar --directory="${args[fsroot]}" --extract --keep-directory-symlink --file="${args[output-dir]}"/kernel.tar.zst
-		zstd --decompress --quiet --force "${args[fsroot]}"/efi/kconfig.zst -o /usr/src/linux/.config
+		ExtractKernel
 		return 0
 	fi
 
@@ -83,8 +83,11 @@ Main() {
 	# create the kernel archive cache file
 	tar --directory="$ipath" --create --preserve-permissions --zstd --file="${args[output-dir]}"/kernel.tar.zst .
 
-	tar --directory="$ipath" --create --preserve-permissions . \
-		| tar --directory="${args[fsroot]}" --extract --keep-directory-symlink
+	ExtractKernel
 	rm -r "$ipath"
+}
+ExtractKernel() {
+	tar --directory="${args[build-dir]}" --extract --keep-directory-symlink --file="${args[output-dir]}"/kernel.tar.zst
+	zstd --decompress --quiet --force "${args[build-dir]}"/efi/kconfig.zst -o /usr/src/linux/.config
 }
 Main "$@"

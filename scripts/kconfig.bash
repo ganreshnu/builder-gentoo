@@ -22,8 +22,8 @@ EOD
 }
 Main() {
 	local -A args=(
-		[quiet]="${BUILDER_QUIET}"
 		[kconfig-dir]="${BUILDER_KCONFIG_DIR}"
+		[quiet]="${BUILDER_QUIET}"
 		[export]=0
 		[skip-kconfigs]=0
 		[from-defconfig]=0

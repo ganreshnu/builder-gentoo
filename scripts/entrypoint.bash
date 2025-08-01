@@ -11,10 +11,11 @@ Options:
                              snippets. Defaults to './kconfig'.
   --output-dir DIRECTORY     Directory in which to store the output
                              artifacts. Defaults to './output'.
+  --build-dir DIRECTORY      Directory in which packages are built and
+                             installed.
   --quiet                    Run with limited output.
   --nproc INT                Number of threads to use.
   --jobs INT                 Number of jobs to split threads among.
-  --fsroot DIRECTORY         Directory in which to install the built kernel.
   --help                     Display this message and exit.
 
 Builds the kernel.
@@ -25,9 +26,9 @@ Main() {
 		[quiet]=
 		[kconfig-dir]=kconfig
 		[output-dir]=output
+		[build-dir]="${BUILD_DIR:-$(mktemp -d)}"
 		[nproc]=$(nproc)
 		[jobs]=2
-		[fsroot]="${FSROOT:-$(mktemp -d)}"
 	)
 	local argv=() cmd=0
 	while [[ $# > 0 ]]; do
@@ -45,6 +46,11 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[output-dir]="$value"
 				;;
+			--build-dir* )
+				local value= count=0
+				ExpectArg value count "$@"; shift $count
+				args[build-dir]="$value"
+				;;
 			--nproc* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
@@ -55,12 +61,7 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[jobs]="$value"
 				;;
-			--fsroot* )
-				local value= count=0
-				ExpectArg value count "$@"; shift $count
-				args[fsroot]="$value"
-				;;
-			kconfig|kernel|packages|initramfs|diskimage|init )
+			kconfig|kernel|packages|initramfs|diskimage|init|base )
 				cmd=1
 				break;
 				;;
@@ -89,13 +90,12 @@ Main() {
 		return
 	fi
 
+	export BUILDER_KCONFIG_DIR="${args[kconfig-dir]}"
+	export BUILDER_OUTPUT_DIR="${args[output-dir]}"
+	export BUILDER_BUILD_DIR="${args[build-dir]}"
 	export BUILDER_NPROC="${args[nproc]}"
 	export BUILDER_QUIET="${args[quiet]}"
-	export BUILDER_KCONFIG_DIR="${args[kconfig-dir]}"
-	export BUILDER_FSROOT="${args[fsroot]}"
 	export BUILDER_JOBS="${args[jobs]}"
-	export BUILDER_OUTPUT_DIR="${args[output-dir]}"
-	# export BUILDER_DISTNAME="${args[distname]}"
 
 	[[ $cmd == 1 ]] && exec "$@" || "$@"
 }

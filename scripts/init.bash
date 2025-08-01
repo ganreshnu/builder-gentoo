@@ -8,7 +8,7 @@ Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] PACKAGES
 
 Options:
   --quiet                    Run with limited output.
-  --fsroot DIRECTORY         Directory in which to install the built kernel.
+  --fsroot DIRECTORY         Directory in which to preserve the build.
   --help                     Display this message and exit.
 
 Builds and installs the packages.
@@ -49,11 +49,11 @@ Main() {
 		'--volume="${HOME}"/.var/db/repos:/var/db/repos'
 	)
 	[[ -n "${args[fsroot]}" ]] && pmargs+=(
-		'--env=FSROOT=/fsroot'
-		'--volume='"${args[fsroot]}"':/fsroot'
+		'--env=BUILD_DIR=/build'
+		'--volume='"${args[fsroot]}"':/build'
 	)
 	local pmcmd='podman run --volume="${PWD}":"${PWD}" --workdir="${PWD}" --rm --interactive --tty'
 
-	>.env echo alias builder=\'$(echo "$pmcmd" "${pmargs[@]}" builder-gentoo)\'
+	echo -n alias builder=\'$(echo "$pmcmd" "${pmargs[@]}" builder-gentoo)\'
 }
 Main "$@"
