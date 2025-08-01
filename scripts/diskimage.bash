@@ -8,7 +8,8 @@ Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] [FILENAME]
 
 Options:
   --fsroot DIRECTORY         Directory in which to install the built kernel.
-  --distname NAME            Distname to prefix the diskimage with.
+  --output-dir DIRECTORY     Directory in which to store the output
+                             artifacts. Defaults to './output'.
   --split                    Generate a file per partition.
   --help                     Display this message and exit.
 
@@ -18,7 +19,7 @@ EOD
 Main() {
 	local -A args=(
 		[fsroot]="${BUILDER_FSROOT}"
-		[distname]="${BUILDER_DISTNAME}"
+		[output-dir]="${BUILDER_OUTPUT_DIR}"
 		[split]=0
 	)
 	local argv=()
@@ -29,10 +30,10 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[fsroot]="$value"
 				;;
-			--distname* )
-				local value count=0
+			--output-dir* )
+				local value= count=0
 				ExpectArg value count "$@"; shift $count
-				args[distname]="$value"
+				args[output-dir]="$value"
 				;;
 			--split )
 				args[split]=1
@@ -58,11 +59,15 @@ Main() {
 		--exclude='usr/share/factory/etc/vconsole.conf'
 	)
 
+	[[ ! -d "${args[fsroot]}"/efi ]] && /usr/share/SYSTEM/initramfs.bash
+
+	# copy the pruned fsroot into a temp dir
 	local -r tempdir="$(mktemp -d)"
 	tar --directory="${tempdir}" --extract --keep-directory-symlink --file=/root/fsroot-empty.tar.xz
 	tar --directory="${args[fsroot]}" --create --preserve-permissions "${excludes[@]}" efi usr \
 		| tar --directory="${tempdir}" --extract --keep-directory-symlink
 
+	# create mount points
 	mkdir -p "${tempdir}"/{dev,etc,proc,run,sys,tmp}
 	local -r grub=1
 	if [[ $grub == 1 ]]; then
@@ -80,9 +85,9 @@ Main() {
 	Print 4 info "/efi is $(du -sh ${tempdir}/efi |cut -f1)"
 	Print 4 info "/usr is $(du -sh ${tempdir}/usr |cut -f1)"
 
-	local -r archivename="${args[distname]}-diskimage.raw"
-	rm -f "${args[distname]}-diskimage".*
-	systemd-repart --definitions=repart.d --copy-source="${tempdir}" --empty=create --size=auto --split="${args[split]}" "$archivename"
+	local -r archivename="${args[output-dir]}/diskimage.raw"
+	rm -f "${args[output-dir]}/diskimage".*
+	systemd-repart --definitions=repart.d --copy-source="${tempdir}" --empty=create --size=auto --split="${args[split]}" "${archivename}"
 
 	rm -rf "${tempdir}"
 }

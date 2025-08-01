@@ -62,7 +62,7 @@ Main() {
 	argv+=( "$@" )
 	set - "${argv[@]}"
 
-	# /usr/share/SYSTEM/kernel.bash
+	/usr/share/SYSTEM/kernel.bash
 	compgen -G *.use >/dev/null && cp *.use /etc/portage/package.use/
 
 	local world=()

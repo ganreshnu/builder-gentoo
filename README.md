@@ -3,8 +3,9 @@
 *** phases ***
 * kconfig
 * kernel
-* packages
+* packages (initramfs)
 * initramfs
+* packages (system)
 * bootloader
 * repart
 

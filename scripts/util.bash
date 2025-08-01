@@ -16,5 +16,8 @@ ExpectArg() {
 	v="${1#*=}"
 }
 SetupRoot() {
-	tar --directory="${args[fsroot]}" --extract --keep-directory-symlink --file=/root/fsroot-empty.tar.xz
+	tar --directory="${args[fsroot]}" --extract --file=/root/fsroot-empty.tar.xz
+}
+Define() {
+	IFS=$'\n' read -r -d '' ${1} ||true
 }

@@ -7,6 +7,10 @@ Usage() {
 Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] [FILENAME]
 
 Options:
+  --kconfig-dir DIRECTORY    Directory containing kernel configuration
+                             snippets. Defaults to './kconfig'.
+  --output-dir DIRECTORY     Directory in which to store the output
+                             artifacts. Defaults to './output'.
   --quiet                    Run with limited output.
   --nproc INT                Number of threads to use.
   --jobs INT                 Number of jobs to split threads among.
@@ -19,11 +23,11 @@ EOD
 Main() {
 	local -A args=(
 		[quiet]=
-		[kconfigs-dir]=kconfigs
+		[kconfig-dir]=kconfig
+		[output-dir]=output
 		[nproc]=$(nproc)
 		[jobs]=2
-		[fsroot]="${FSROOT}"
-		[distname]=myosimage
+		[fsroot]="${FSROOT:-$(mktemp -d)}"
 	)
 	local argv=() cmd=0
 	while [[ $# > 0 ]]; do
@@ -31,10 +35,15 @@ Main() {
 			--quiet )
 				args[quiet]='--quiet'
 				;;
-			--kconfigs-dir* )
+			--kconfig-dir* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
-				args[kconfigs-dir]="$value"
+				args[kconfig-dir]="$value"
+				;;
+			--output-dir* )
+				local value= count=0
+				ExpectArg value count "$@"; shift $count
+				args[output-dir]="$value"
 				;;
 			--nproc* )
 				local value= count=0
@@ -51,12 +60,7 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[fsroot]="$value"
 				;;
-			--distname* )
-				local value= count=0
-				ExpectArg value count "$@"; shift $count
-				args[distname]="$value"
-				;;
-			kconfig|kernel|packages|initramfs|diskimage )
+			kconfig|kernel|packages|initramfs|diskimage|init )
 				cmd=1
 				break;
 				;;
@@ -87,10 +91,11 @@ Main() {
 
 	export BUILDER_NPROC="${args[nproc]}"
 	export BUILDER_QUIET="${args[quiet]}"
-	export BUILDER_KCONFIGS_DIR="${args[kconfigs-dir]}"
+	export BUILDER_KCONFIG_DIR="${args[kconfig-dir]}"
 	export BUILDER_FSROOT="${args[fsroot]}"
 	export BUILDER_JOBS="${args[jobs]}"
-	export BUILDER_DISTNAME="${args[distname]}"
+	export BUILDER_OUTPUT_DIR="${args[output-dir]}"
+	# export BUILDER_DISTNAME="${args[distname]}"
 
 	[[ $cmd == 1 ]] && exec "$@" || "$@"
 }
