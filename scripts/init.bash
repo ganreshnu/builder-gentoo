@@ -52,7 +52,7 @@ Main() {
 		'--env=BUILD_DIR=/build'
 		'--volume='"${args[build-dir]}"':/build'
 	)
-	local pmcmd='podman run --volume="${PWD}":"${PWD}" --workdir="${PWD}" --rm --interactive --tty'
+	local pmcmd='podman run --volume="${PWD}":"${PWD}" --workdir="${PWD}" --device=/dev/fuse --rm --interactive --tty'
 
 	echo -n alias builder=\'$(echo "$pmcmd" "${pmargs[@]}" builder-gentoo)\'
 }

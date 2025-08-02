@@ -67,8 +67,6 @@ Main() {
 
 	if [[ -f "${args[output-dir]}"/initramfs.cpio.zst ]]; then
 		[[ -z "${args[quiet]}" ]] && Print 4 info 'initramfs already built'
-		mkdir -p "${args[build-dir]}"/efi
-		cp "${args[output-dir]}"/initramfs.cpio.zst "${args[build-dir]}"/efi/
 		return 0
 	fi
 
@@ -94,6 +92,7 @@ Main() {
 	[[ -z "${args[quiet]}" ]] && Print 5 initramfs "uncompressed size is $(du -sh ${args[build-dir]} |cut -f1)"
 	# create cpio
 	pushd /usr/src/linux >/dev/null
+	mkdir -p "${args[build-dir]}"/efi
 	usr/gen_initramfs.sh -o /dev/stdout "${args[build-dir]}" \
 		| zstd --compress --stdout > "${args[build-dir]}/efi/initramfs.cpio.zst"
 	popd >/dev/null #/usr/src/linux/

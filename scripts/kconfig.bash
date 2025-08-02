@@ -99,7 +99,6 @@ Main() {
 		rm "${original_config_file}"
 	fi
 
-	[[ ${args[export]} == 1 ]] && cat /usr/src/linux/.config
-	return 0
+	[[ ${args[export]} == 1 ]] && cat /usr/src/linux/.config || true
 }
 Main "$@"

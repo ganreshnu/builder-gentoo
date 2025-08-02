@@ -7,6 +7,7 @@ RUN emaint sync -a || emerge-webrsync --quiet
 
 COPY make.conf /etc/portage/
 COPY system.use /etc/portage/package.use/SYSTEM.use
+COPY system.accept_keywords /etc/portage/package.accept_keywords/SYSTEM.accept_keywords
 COPY package.license /etc/portage/package.license
 
 ARG jobs=2
@@ -15,8 +16,8 @@ RUN emerge --pretend dev-vcs/git app-portage/gentoolkit app-eselect/eselect-repo
 	&& emerge --jobs=$jobs dev-vcs/git app-portage/gentoolkit app-eselect/eselect-repository
 
 # install the kernel sources
-RUN ACCEPT_KEYWORDS="~amd64" emerge --pretend sys-kernel/vanilla-sources \
-	&& ACCEPT_KEYWORDS="~amd64" emerge --jobs=$jobs sys-kernel/vanilla-sources
+RUN emerge --pretend sys-kernel/vanilla-sources \
+	&& emerge --jobs=$jobs sys-kernel/vanilla-sources
 
 COPY kconfigs /usr/src/linux/arch/x86/configs/SYSTEM
 RUN cd /usr/src/linux && make defconfig
@@ -34,9 +35,10 @@ RUN emerge --pretend --update --deep --newuse --noreplace @world \
 	&& export MAKEOPTS="-j$(( $(nproc) / $jobs ))"; emerge --jobs=$jobs --update --deep --newuse --noreplace @world \
 	&& emerge --jobs=$jobs --depclean
 
-RUN emerge --pretend dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools \
-	&& emerge --jobs=$jobs dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools
+RUN emerge --pretend dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils \
+	&& emerge --jobs=$jobs dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils
 
+#  sys-fs/erofs-utils
 # make the initramfs builder
 RUN cd /usr/src/linux && make -C usr gen_init_cpio
 
@@ -56,6 +58,7 @@ RUN locale-gen --update
 COPY scripts /usr/share/SYSTEM
 RUN cd /usr/bin; for f in ../share/SYSTEM/*.bash; do [[ -x "$f" ]] && { bn="$(basename $f)"; ln -s "$f" "${bn%.bash}"; } || true; done
 ENTRYPOINT [ "/bin/entrypoint" ]
+# ENTRYPOINT [ "unshare", "--map-root-user", "--mount", "/bin/entrypoint" ]
 
 # RUN eselect news read --quiet \
 #  && eselect news purge

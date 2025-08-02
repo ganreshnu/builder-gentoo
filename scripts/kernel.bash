@@ -80,7 +80,14 @@ Main() {
 	zstd .config -o "${ipath}"/efi/kconfig.zst
 	popd >/dev/null #/usr/src/linux
 
-	# create the kernel archive cache file
+
+	# create the kernel archive cache file just to set config for initramfs
+	tar --directory="$ipath" --create --preserve-permissions --zstd --file="${args[output-dir]}"/kernel.tar.zst .
+
+	/usr/share/SYSTEM/initramfs.bash
+
+	# create the kernel archive file including initramfs
+	cp "${args[output-dir]}"/initramfs.cpio.zst "${ipath}"/efi/
 	tar --directory="$ipath" --create --preserve-permissions --zstd --file="${args[output-dir]}"/kernel.tar.zst .
 	rm -r "$ipath"
 
