@@ -7,7 +7,7 @@ Usage() {
 Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] [FILENAME]
 
 Options:
-  --kconfig-dir DIRECTORY    Directory containing kernel configuration
+  --kconfig DIRECTORY        Directory containing kernel configuration
                              snippets. Defaults to './kconfig'.
   --output-dir DIRECTORY     Directory in which to store the output
                              artifacts. Defaults to './output'.
@@ -24,7 +24,7 @@ EOD
 Main() {
 	local -A args=(
 		[quiet]=
-		[kconfig-dir]=kconfig
+		[kconfig]=
 		[output-dir]=output
 		[build-dir]="${BUILD_DIR:-$(mktemp -d)}"
 		[nproc]=$(nproc)
@@ -36,10 +36,10 @@ Main() {
 			--quiet )
 				args[quiet]='--quiet'
 				;;
-			--kconfig-dir* )
+			--kconfig* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
-				args[kconfig-dir]="$value"
+				args[kconfig]="$value"
 				;;
 			--output-dir* )
 				local value= count=0
@@ -85,28 +85,19 @@ Main() {
 	argv+=( "$@" )
 	set - "${argv[@]}"
 
-	if [[ -d "${args[kconfig-dir]}" ]]; then
-		[[ -z "${args[quiet]}" ]] && Print 4 kconfig "applying kconfig fragments from ${args[kconfig-dir]}"
-		pushd "${args[kconfig-dir]}" >/dev/null
-		for i in *.config; do
-			[[ "$i" == "*.config" ]] && break
-			cp "$i"  /usr/src/linux/arch/x86/configs/
-			echo "${args[quiet]}" "$i" |xargs make -C /usr/src/linux
-		done
-		popd >/dev/null #args[kconfig-dir]
-	fi
+	export BUILDER_QUIET="${args[quiet]}"
+	export BUILDER_KCONFIG="${args[kconfig]}"
+	/usr/share/SYSTEM/kconfig.bash
 
 	if [[ $cmdtype == unknown ]]; then
 		# we did not match with a script command or function
-		[[ $# > 0 ]] && exec "$@" || bash
+		[[ $# > 0 ]] && exec "$@" || exec bash --login
 		return
 	fi
 
-	export BUILDER_KCONFIG_DIR="${args[kconfig-dir]}"
 	export BUILDER_OUTPUT_DIR="${args[output-dir]}"
 	export BUILDER_BUILD_DIR="${args[build-dir]}"
 	export BUILDER_NPROC="${args[nproc]}"
-	export BUILDER_QUIET="${args[quiet]}"
 	export BUILDER_JOBS="${args[jobs]}"
 
 	[[ $cmdtype == function ]] && "$@" || exec "$@"

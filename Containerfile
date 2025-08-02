@@ -23,6 +23,7 @@ COPY kconfigs /usr/src/linux/arch/x86/configs/SYSTEM
 RUN cd /usr/src/linux && make defconfig
 RUN cd /usr/src/linux \
 	&& for f in arch/x86/configs/SYSTEM/*.config; do make SYSTEM/"$( basename ${f} )"; done
+RUN cp /usr/src/linux/.config /usr/src/linux/SYSTEM.config
 
 # install the firmware
 RUN emerge --pretend sys-kernel/linux-firmware sys-firmware/intel-microcode net-wireless/wireless-regdb \
