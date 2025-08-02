@@ -30,7 +30,7 @@ Main() {
 		[nproc]=$(nproc)
 		[jobs]=2
 	)
-	local argv=() cmd=0
+	local argv=() cmdtype=unknown
 	while [[ $# > 0 ]]; do
 		case "$1" in
 			--quiet )
@@ -62,11 +62,11 @@ Main() {
 				args[jobs]="$value"
 				;;
 			kconfig|kernel|packages|initramfs|diskimage|init|base )
-				cmd=1
+				cmdtype=script
 				break;
 				;;
 			rmpkg )
-				cmd=2
+				cmdtype=function
 				break
 				;;
 			--help )
@@ -85,7 +85,19 @@ Main() {
 	argv+=( "$@" )
 	set - "${argv[@]}"
 
-	if [[ $cmd == 0 ]]; then
+	if [[ -d "${args[kconfig-dir]}" ]]; then
+		[[ -z "${args[quiet]}" ]] && Print 4 kconfig "applying kconfig fragments from ${args[kconfig-dir]}"
+		pushd "${args[kconfig-dir]}" >/dev/null
+		for i in *.config; do
+			[[ "$i" == "*.config" ]] && break
+			cp "$i"  /usr/src/linux/arch/x86/configs/
+			echo "${args[quiet]}" "$i" |xargs make -C /usr/src/linux
+		done
+		popd >/dev/null #args[kconfig-dir]
+	fi
+
+	if [[ $cmdtype == unknown ]]; then
+		# we did not match with a script command or function
 		[[ $# > 0 ]] && exec "$@" || bash
 		return
 	fi
@@ -97,7 +109,7 @@ Main() {
 	export BUILDER_QUIET="${args[quiet]}"
 	export BUILDER_JOBS="${args[jobs]}"
 
-	[[ $cmd == 1 ]] && exec "$@" || "$@"
+	[[ $cmdtype == function ]] && "$@" || exec "$@"
 }
 rmpkg() {
 	local -r tempfile="$(mktemp)"
