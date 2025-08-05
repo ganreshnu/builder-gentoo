@@ -8,19 +8,29 @@ ExpectArg() {
 	local name="${1%%=*}"
 	c=0
 	if [[ "$1" == "${name}" ]]; then
-		[[ $# < 2 ]] && >&2 Print 1 error "$1 expects a value." && return 1
+		(( $# < 2 )) && >&2 Print 1 "${BASH_SOURCE[1]}" "$1 expects a value." && return 1
 		v="$2"
 		c=1
 		return 0
 	fi
 	v="${1#*=}"
 }
-SetupRoot() {
-	tar --directory="${args[build-dir]}" --extract --file=/root/fsroot-empty.tar.xz
-}
 Define() {
 	IFS=$'\n' read -r -d '' ${1} ||true
 }
+
+SetupRoot() {
+	[[ -z "${args[quiet]}" ]] && Print 4 SetupRoot "preparing ${*} for use"
+	tar --directory="${*}" --extract --file=/root/fsroot.tar.zst
+}
+GenerateLocales() {
+	# generate the locales
+	local -r locale_config_file="${1}"; shift
+	echo "${args[quiet]}" |xargs locale-gen --destdir "${*}" --config "${locale_config_file}" --jobs "${args[nproc]}"
+}
 KVersion() {
 	make --directory=/usr/src/linux --quiet kernelversion
+}
+KConfigHash() {
+	readlink /usr/src/linux/CONFIGURED |cut -d' ' -f1
 }

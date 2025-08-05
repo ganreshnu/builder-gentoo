@@ -38,7 +38,8 @@ RUN emerge --pretend --update --deep --newuse --noreplace @world \
 RUN emerge --pretend dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils \
 	&& emerge --jobs=$jobs dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils
 
-#  sys-fs/erofs-utils
+# remove the package.provided file as it can be bad system-wide
+RUN rm /etc/portage/profile/package.provided/!!-SYSTEM.provided
 # make the initramfs builder
 RUN cd /usr/src/linux && make -C usr gen_init_cpio
 

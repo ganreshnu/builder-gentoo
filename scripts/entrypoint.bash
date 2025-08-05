@@ -9,10 +9,6 @@ Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] [FILENAME]
 Options:
   --kconfig DIRECTORY        Directory containing kernel configuration
                              snippets. Defaults to './kconfig'.
-  --output-dir DIRECTORY     Directory in which to store the output
-                             artifacts. Defaults to './output'.
-  --build-dir DIRECTORY      Directory in which packages are built and
-                             installed.
   --quiet                    Run with limited output.
   --nproc INT                Number of threads to use.
   --jobs INT                 Number of jobs to split threads among.
@@ -20,18 +16,18 @@ Options:
 
 Builds the kernel.
 EOD
+  # --build-dir DIRECTORY      Directory in which packages are built and
+  #                            installed.
 }
 Main() {
 	local -A args=(
 		[quiet]=
 		[kconfig]=
-		[output-dir]=output
-		[build-dir]="${BUILD_DIR:-$(mktemp -d)}"
 		[nproc]=$(nproc)
 		[jobs]=2
 	)
 	local argv=() cmdtype=unknown
-	while [[ $# > 0 ]]; do
+	while (( $# > 0 )); do
 		case "$1" in
 			--quiet )
 				args[quiet]='--quiet'
@@ -40,16 +36,6 @@ Main() {
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
 				args[kconfig]="$value"
-				;;
-			--output-dir* )
-				local value= count=0
-				ExpectArg value count "$@"; shift $count
-				args[output-dir]="$value"
-				;;
-			--build-dir* )
-				local value= count=0
-				ExpectArg value count "$@"; shift $count
-				args[build-dir]="$value"
 				;;
 			--nproc* )
 				local value= count=0
@@ -86,19 +72,16 @@ Main() {
 	set - "${argv[@]}"
 
 	export BUILDER_QUIET="${args[quiet]}"
-	export BUILDER_KCONFIG="${args[kconfig]}"
-	/usr/share/SYSTEM/kconfig.bash
+	export BUILDER_NPROC="${args[nproc]}"
+	export BUILDER_JOBS="${args[jobs]}"
+
+	[[ -n "${args[kconfig]}" ]] && /usr/share/SYSTEM/kconfig.bash --kconfig "${args[kconfig]}"
 
 	if [[ $cmdtype == unknown ]]; then
 		# we did not match with a script command or function
-		[[ $# > 0 ]] && exec "$@" || exec bash --login
+		(( $# > 0 )) && exec "$@" || exec bash --login
 		return
 	fi
-
-	export BUILDER_OUTPUT_DIR="${args[output-dir]}"
-	export BUILDER_BUILD_DIR="${args[build-dir]}"
-	export BUILDER_NPROC="${args[nproc]}"
-	export BUILDER_JOBS="${args[jobs]}"
 
 	[[ $cmdtype == function ]] && "$@" || exec "$@"
 }

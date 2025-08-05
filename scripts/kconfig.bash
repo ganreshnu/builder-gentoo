@@ -20,13 +20,13 @@ EOD
 }
 Main() {
 	local -A args=(
-		[kconfig]="${BUILDER_KCONFIG}"
-		[quiet]="${BUILDER_QUIET}"
+		[quiet]=
+		[kconfig]=
 		[export]=0
 		[from-defconfig]=0
 	)
 	local argv=()
-	while [[ $# > 0 ]]; do
+	while (( $# > 0 )); do
 		case "$1" in
 			--quiet )
 				args[quiet]='--quiet'
@@ -57,18 +57,21 @@ Main() {
 	set - "${argv[@]}"
 
 	# always load args[kconfig]
-	[[ -n "${args[kconfig]}" ]] && if [[ -d "${args[kconfig]}" ]]; then
-		pushd "${args[kconfig]}" >/dev/null
-		for config in *.config; do
-			[[ "${config}" == "*.config" ]] && break
-			ApplyKConfig "${config}"
-		done
-		popd >/dev/null #args[kconfig]
-	elif [[ -f "${args[kconfig]}" ]]; then
-		ApplyKConfig "${args[kconfig]}"
-	fi || true
+	if [[ ! -L /usr/src/linux/CONFIGURED && -n "${args[kconfig]}" ]]; then
+		if [[ -d "${args[kconfig]}" ]]; then
+			pushd "${args[kconfig]}" >/dev/null
+			for config in *.config; do
+				[[ "${config}" == "*.config" ]] && break
+				ApplyKConfig "${config}"
+			done
+			popd >/dev/null #args[kconfig]
+		elif [[ -f "${args[kconfig]}" ]]; then
+			ApplyKConfig "${args[kconfig]}"
+		fi
+		ln -sf "$(sha256sum /usr/src/linux/.config)" /usr/src/linux/CONFIGURED
+	fi
 
-	if [[ $# > 0 ]]; then
+	if (( $# > 0 )); then
 		# we are editing a file
 		[[ -z "${args[quiet]}" ]] && Print 4 kconfig "editing ${*} using nconfig"
 
@@ -83,6 +86,7 @@ Main() {
 		pushd /usr/src/linux >/dev/null
 		make --quiet nconfig \
 			&& scripts/diffconfig -m "${snapshot}" .config > /tmp/diff.config
+		rm "${snapshot}"
 		popd >/dev/null #/usr/src/linux
 		mv /tmp/diff.config "${*}"
 		[[ -z "${args[quiet]}" ]] && Print 4 kconfig "${*} has been saved"
