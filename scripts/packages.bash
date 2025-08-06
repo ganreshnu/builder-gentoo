@@ -15,6 +15,8 @@ Options:
   --portage-conf DIRECTORY   Use the specified DIRECTORY for portage
                              configuration files.
   --locale-gen FILE          Use FILE to generate the locale database.
+  --workdir DIRECTORY        OverlayFS workdir which must be on the same
+                             partition as the layer directories.
   --help                     Display this message and exit.
 
 Builds and installs the packages.
@@ -30,6 +32,7 @@ Main() {
 		[extra-dir]=
 		[portage-conf]=
 		[locale-gen]=/etc/locale.gen
+		[workdir]=
 	)
 	local argv=()
 	while (( $# > 0 )); do
@@ -72,13 +75,20 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[locale-gen]="$value"
 				;;
+			--workdir* )
+				local value= count=0
+				ExpectArg value count "$@"; shift $count
+				args[workdir]="$value"
+				;;
 			--help )
 				Usage
 				return 0
 				;;
 			@* )
 				mapfile -t <"${1#@}"
-				argv+=( "${MAPFILE[@]}" )
+				for item in "${MAPFILE[@]}"; do
+					[[ "${item}" != \#* ]] && argv+=( "${item}" )
+				done
 				;;
 			* )
 				argv+=( "$1" )
@@ -107,8 +117,12 @@ Main() {
 		done <"${portageConfFileList}"
 	fi
 
-	[[ -z "${args[build-dir]}" ]] && args[build-dir]="$(mktemp -d)"
-	# mount upper (build-dir)
+	[[ -z "${args[build-dir]}" ]] && args[build-dir]="$(mktemp -d)" || mkdir -p "${args[build-dir]}"
+
+	# local -r overlayDir=/tmp/overlay; mkdir "${overlayDir}"
+	# fuse-overlayfs -o workdir="${args[workdir]}",lowerdir=$(Join : "$@"),upperdir="${args[build-dir]}" "${overlayDir}" || { >&2 Print 1 diskimage "mount failed"; return 1; }
+
+	# create and setup the build dir
 	SetupRoot "${args[build-dir]}"
 
 	[[ -z "${args[quiet]}" ]] && Print 4 packages "building packages with emerge --root=${args[build-dir]} --jobs=${args[jobs]} ${*}"
@@ -126,8 +140,9 @@ Main() {
 	# copy in extra
 	[[ -n "${args[extra-dir]}" ]] && tar --directory="${args[extra-dir]}" --create --preserve-permissions . \
 		|tar --directory="${args[build-dir]}"/usr --extract --keep-directory-symlink
+	[[ -z "${args[quiet]}" && -n "${args[extra-dir]}" ]] && Print 4 packages "copied in extra-dir"
 
 	# generate the locales
-	[[ -n "${args[locale-gen]}" ]] && GenerateLocales "${args[locale-gen]}" "${args[build-dir]}" || true
+	[[ -n "${args[locale-gen]}" && -x "${args[build-dir]}"/usr/bin/localedef ]] && GenerateLocales "${args[locale-gen]}" "${args[build-dir]}" || true
 }
 Main "$@"

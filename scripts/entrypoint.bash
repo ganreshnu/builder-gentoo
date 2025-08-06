@@ -47,8 +47,12 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[jobs]="$value"
 				;;
-			kconfig|kernel|packages|initramfs|diskimage|init|base )
+			kconfig|packages|initramfs|init|base )
 				cmdtype=script
+				break;
+				;;
+			kernel|diskimage )
+				cmdtype=unshare
 				break;
 				;;
 			rmpkg )
@@ -83,7 +87,18 @@ Main() {
 		return
 	fi
 
-	[[ $cmdtype == function ]] && "$@" || exec "$@"
+	if [[ $cmdtype == function ]]; then
+		"$@"
+		return
+	fi
+
+	if [[ $cmdtype == unshare ]]; then
+		exec unshare --mount --map-root-user "$@"
+		# --pid --fork --kill-child --user
+	fi
+
+	# $cmdtype == script
+	exec "$@"
 }
 rmpkg() {
 	local -r tempfile="$(mktemp)"

@@ -35,8 +35,8 @@ RUN emerge --pretend --update --deep --newuse --noreplace @world \
 	&& export MAKEOPTS="-j$(( $(nproc) / $jobs ))"; emerge --jobs=$jobs --update --deep --newuse --noreplace @world \
 	&& emerge --jobs=$jobs --depclean
 
-RUN emerge --pretend dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils \
-	&& emerge --jobs=$jobs dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils
+RUN emerge --pretend dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils net-misc/whois \
+	&& emerge --jobs=$jobs dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils net-misc/whois
 
 # remove the package.provided file as it can be bad system-wide
 RUN rm /etc/portage/profile/package.provided/!!-SYSTEM.provided
@@ -54,6 +54,7 @@ COPY grub.cfg /boot/grub.cfg
 RUN cp -rT /etc/skel /root && mkdir -p /root/.config
 COPY fsroot.tar.zst /root/
 COPY locale.gen /etc/
+COPY vconsole.conf /etc/
 RUN locale-gen --update
 
 COPY initramfs /root/initramfs

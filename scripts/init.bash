@@ -64,15 +64,23 @@ Qemu() {
 	local -r qemu_args=(
 		-machine q35,accel=kvm,vmport=auto,nvdimm=on,hmat=on
 		-cpu max
-		-device virtio-iommu-pci
 		-m 8G
+		-smp 8
+		-nodefaults
 
 		-drive if=pflash,format=raw,unit=0,file=/usr/share/edk2-ovmf/x64/OVMF.4m.fd,readonly=on
 		-drive if=pflash,format=raw,unit=1,file="${HOME}"/.var/OVMF_VARS.fd
+		-drive if=virtio,format=raw,file="${*}"
 
+		-vga virtio
+		-device qemu-xhci
+		-device usb-kbd
 		-serial stdio
 	)
+		# -device virtio-gpu-gl,hostmem=8G,blob=true,venus=true
+		# -drive if=none,id=bootdisk,format=raw,file="${*}"
+		# -device usb-storage,drive=bootdisk
 
-	qemu-system-x86_64 "${qemu_args[@]}" -drive if=virtio,file="${*}",format=raw
+	qemu-system-x86_64 "${qemu_args[@]}" 
 }
 Main "$@"

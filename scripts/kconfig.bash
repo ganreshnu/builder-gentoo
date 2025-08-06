@@ -20,7 +20,7 @@ EOD
 }
 Main() {
 	local -A args=(
-		[quiet]=
+		[quiet]=${BUILDER_QUIET}
 		[kconfig]=
 		[export]=0
 		[from-defconfig]=0
@@ -96,7 +96,7 @@ Main() {
 }
 ApplyKConfig() {
 	cp "${1}" /usr/src/linux/arch/x86/configs/
-	echo "${args[quiet]}" "$(basename ${1})" |xargs make -C /usr/src/linux
-	[[ -z "${args[quiet]}" ]] && Print 4 kconfig "kconfig fragment '${1}' has been applied"
+	make -C /usr/src/linux "$(basename ${1})" --quiet
+	[[ -z "${args[quiet]}" ]] && Print 4 kconfig "kconfig fragment '${1}' has been applied" || true
 }
 Main "$@"

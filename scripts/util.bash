@@ -18,6 +18,10 @@ ExpectArg() {
 Define() {
 	IFS=$'\n' read -r -d '' ${1} ||true
 }
+Join() {
+	IFS="$1"; shift
+	echo "$*"
+}
 
 SetupRoot() {
 	[[ -z "${args[quiet]}" ]] && Print 4 SetupRoot "preparing ${*} for use"
