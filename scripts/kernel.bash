@@ -15,6 +15,8 @@ Options:
                              with modules and optionally the initramfs cpio
                              archive.
   --rootpw                   Root password for initrd encrypted with mkpasswd(1).
+  --module                   Copy a module from the kernel install to the
+                             initramfs.
   --help                     Display this message and exit.
 
 Builds the kernel and optionally an initramfs with the given DIRECTORY(s).
@@ -31,6 +33,7 @@ Main() {
 		[rootpw]=
 	)
 	local argv=()
+	local modules=()
 	while (( $# > 0 )); do
 		case "$1" in
 			--quiet )
@@ -55,6 +58,18 @@ Main() {
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
 				args[rootpw]="$value"
+				;;
+			--module* )
+				local value= count=
+				ExpectArg value count "$@"; shift $count
+				if [[ "$value" == @* ]]; then
+					mapfile -t <"${value#@}"
+					for item in "${MAPFILE[@]}"; do
+						[[ "${item}" != \#* ]] && modules+=( "${item}" )
+					done
+				else
+					modules+=( "${value}" )
+				fi
 				;;
 			--help )
 				Usage
@@ -106,9 +121,7 @@ Main() {
 		#
 		mkdir -p "${tempInitramfsDir}"/usr/lib/modules/$(KVersion)
 		rm -fr "${tempInitramfsDir}"/usr/lib/modules/$(KVersion)/*
-		CopyModule ext4
-		CopyModule virtio_blk
-		CopyModule virtio_pci
+		for module in "${modules[@]}"; do CopyModule "${module}"; done
 		cp "${args[build-dir]}"/usr/lib/modules/$(KVersion)/modules.{order,builtin,builtin.modinfo} "${tempInitramfsDir}"/usr/lib/modules/$(KVersion)/
 		depmod --basedir="${tempInitramfsDir}" --outdir="${tempInitramfsDir}" $(KVersion)
 
