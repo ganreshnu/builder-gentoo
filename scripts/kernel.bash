@@ -131,13 +131,10 @@ Main() {
 		mkdir -p "${tempInitramfsDir}"/{dev,etc,proc,run,sys,tmp}
 		ln -sf ../usr/lib/os-release "${tempInitramfsDir}"/etc/initrd-release
 		ln -sf usr/lib/systemd/systemd "${tempInitramfsDir}"/init
-		# cp /etc/vconsole.conf "${tempInitramfsDir}"/etc/
-		# systemd-machine-id-setup --root="${tempInitramfsDir}"
-		systemd-sysusers --root="${tempInitramfsDir}"
-		[[ -n "${args[rootpw]}" ]] && echo "root:${args[rootpw]}" |chpasswd --prefix "${tempInitramfsDir}" --encrypted
-		# set root password
 		# systemd-tmpfiles --root="${tempInitramfsDir}" --create
-		# copy modules?
+		systemd-sysusers --root="${tempInitramfsDir}"
+		# set root password
+		[[ -n "${args[rootpw]}" ]] && echo "root:${args[rootpw]}" |chpasswd --prefix "${tempInitramfsDir}" --encrypted
 		[[ -z "${args[quiet]}" ]] && Print 5 kernel "initramfs uncompressed size is $(du -sh "${tempInitramfsDir}" |cut -f1)"
 
 		#
