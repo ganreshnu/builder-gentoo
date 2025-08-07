@@ -52,10 +52,6 @@ Main() {
 	set - "${argv[@]}"
 
 	[[ -z "${args[build-dir]}" ]] && args[build-dir]="$(mktemp -d)" || mkdir -p "${args[build-dir]}"
-	# [[ -z "${args[build-dir]}" ]] && { args[build-dir]=/tmp/diskimage; mkdir -p "${args[build-dir]}"; }
-	# [[ -z "${args[build-dir]}" ]] && { >&2 Print 1 diskimage 'no build-dir passed, nothing to create an image from'; return 1; }
-
-	# mkdir -p "${args[build-dir]}"/{dev,etc,proc,run,sys,tmp}
 
 	local -r overlayDir=/tmp/overlay; mkdir "${overlayDir}"
 	mkdir -p "${args[workdir]}"
