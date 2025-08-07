@@ -12,3 +12,4 @@ dev-vcs/git -webdav
 sys-kernel/linux-firmware compress-zstd
 sys-kernel/vanilla-sources symlink
 net-misc/whois -iconv xcrypt
+sys-apps/kmod -lzma -zlib
