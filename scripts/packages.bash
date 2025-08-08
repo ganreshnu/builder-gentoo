@@ -31,10 +31,11 @@ Main() {
 		[build-dir]=
 		[extra-dir]=
 		[portage-conf]=
-		[locale-gen]=/etc/locale.gen
+		[locale-gen]=
 		[workdir]=
 	)
 	local argv=()
+	local basefs=()
 	while (( $# > 0 )); do
 		case "$1" in
 			--quiet )
@@ -80,6 +81,11 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[workdir]="$value"
 				;;
+			--basefs* )
+				local value= count=0
+				ExpectArg value count "$@"; shift $count
+				basefs+=( "$value" )
+				;;
 			--help )
 				Usage
 				return 0
@@ -102,6 +108,9 @@ Main() {
 	export BUILDER_QUIET="${args[quiet]}"
 	[[ -n "${args[kconfig]}" ]] && /usr/share/SYSTEM/kconfig.bash --kconfig "${args[kconfig]}"
 
+	#
+	# apply portage configuration
+	#
 	if [[ -n "${args[portage-conf]}" ]]; then
 		# get a list of customized portage config files
 		pushd "${args[portage-conf]}" >/dev/null
@@ -117,32 +126,52 @@ Main() {
 		done <"${portageConfFileList}"
 	fi
 
-	[[ -z "${args[build-dir]}" ]] && args[build-dir]="$(mktemp -d)" || mkdir -p "${args[build-dir]}"
+	# #
+	# # mount the overlay
+	# #
+	# (( ${#basefs[@]} == 0 )) && basefs+=( /var/empty )
+	# [[ -z "${args[build-dir]}" ]] && args[build-dir]="$(mktemp -d)" || mkdir -p "${args[build-dir]}"
+	# local -r overlayDir="$(mktemp -d)"; mkdir -p "${args[workdir]}"
+	# fuse-overlayfs -o workdir="${args[workdir]}",lowerdir=$(Join : "${basefs[@]}"),upperdir="${args[build-dir]}" "${overlayDir}" || { >&2 Print 1 diskimage "mount failed"; return 1; }
+	local -r overlayDir="${args[build-dir]}"
 
-	# local -r overlayDir=/tmp/overlay; mkdir "${overlayDir}"
-	# fuse-overlayfs -o workdir="${args[workdir]}",lowerdir=$(Join : "$@"),upperdir="${args[build-dir]}" "${overlayDir}" || { >&2 Print 1 diskimage "mount failed"; return 1; }
-
+	#
 	# create and setup the build dir
-	SetupRoot "${args[build-dir]}"
+	#
+	SetupRoot "${overlayDir}"
 
-	[[ -z "${args[quiet]}" ]] && Print 4 packages "building packages with emerge --root=${args[build-dir]} --jobs=${args[jobs]} ${*}"
+	#
 	# install the packages
+	#
+	[[ -z "${args[quiet]}" ]] && Print 4 packages "building packages with emerge --root=${overlayDir} --jobs=${args[jobs]} ${*}"
 	echo "${args[quiet]}" "$@" |MAKEOPTS="-j$(( ${args[nproc]} / ${args[jobs]} ))" KERNEL_DIR=/usr/src/linux xargs \
-		emerge --root="${args[build-dir]}" --noreplace --jobs=${args[jobs]}
+	emerge --root="${overlayDir}" --noreplace --jobs=${args[jobs]}
 
+	#
+	# copy in extra
+	#
+	[[ -n "${args[extra-dir]}" && -z "${args[quiet]}" ]] && Print 4 packages "copying in extra files from ${args[extra-dir]}"
+	[[ -n "${args[extra-dir]}" ]] && tar --directory="${args[extra-dir]}" --create --preserve-permissions . \
+		|tar --directory="${overlayDir}"/usr --extract --keep-directory-symlink
+
+	#
+	# generate the locales
+	#
+	[[ -n "${args[locale-gen]}" && -x "${overlayDir}"/usr/bin/localedef ]] && GenerateLocales "${args[locale-gen]}" "${overlayDir}" || true
+
+	# #
+	# # unmount the overlay
+	# #
+	# fusermount3 -u "${overlayDir}"
+
+	#
+	# revert portage configuration
+	#
 	if [[ -n "${args[portage-conf]}" ]]; then
 		# remove portage config
 		while IFS= read -r -d ''; do
 			rm /etc/portage/"${REPLY}"
 		done <"${portageConfFileList}"
 	fi
-
-	# copy in extra
-	[[ -n "${args[extra-dir]}" ]] && tar --directory="${args[extra-dir]}" --create --preserve-permissions . \
-		|tar --directory="${args[build-dir]}"/usr --extract --keep-directory-symlink
-	[[ -z "${args[quiet]}" && -n "${args[extra-dir]}" ]] && Print 4 packages "copied in extra-dir"
-
-	# generate the locales
-	[[ -n "${args[locale-gen]}" && -x "${args[build-dir]}"/usr/bin/localedef ]] && GenerateLocales "${args[locale-gen]}" "${args[build-dir]}" || true
 }
 Main "$@"

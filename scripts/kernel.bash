@@ -87,7 +87,9 @@ Main() {
 	export BUILDER_QUIET="${args[quiet]}"
 	[[ -n "${args[kconfig]}" ]] && /usr/share/SYSTEM/kconfig.bash --kconfig "${args[kconfig]}"
 
+	#
 	# build the kernel
+	#
 	local -r buildDir=$( [[ -n "${args[build-dir]}" ]] && realpath "${args[build-dir]}" || echo /tmp/build-kernel )
 	if [[ ! -f "${buildDir}"/efi/kconfig.zst ]]; then
 		# build and install the kernel
@@ -102,10 +104,15 @@ Main() {
 		popd >/dev/null #/usr/src/linux
 	fi
 
+	#
 	# build the initramfs
+	#
 	if (( $# > 0 )); then
-		local -r initramfsDir="$(mktemp -d)"
-		fuse-overlayfs -o lowerdir=$(Join : "$@") "${initramfsDir}" || { >&2 Print 1 diskimage "mount failed"; return 1; }
+		#
+		# mount the overlay
+		#
+		local -r overlayDir="$(mktemp -d)"
+		fuse-overlayfs -o lowerdir=$(Join : "$@") "${overlayDir}" || { >&2 Print 1 diskimage "mount failed"; return 1; }
 
 		local -r excludes=(
 			--exclude=usr/lib/systemd/system-environment-generators/10-gentoo-path
@@ -113,8 +120,13 @@ Main() {
 			--exclude=usr/share/factory/etc/vconsole.conf
 		)
 		local -r tempInitramfsDir="$(mktemp -d)"
-		tar --directory="${initramfsDir}" --create --preserve-permissions "${excludes[@]}" bin lib lib64 sbin usr \
+		tar --directory="${overlayDir}" --create --preserve-permissions "${excludes[@]}" bin lib lib64 sbin usr \
 			|tar --directory="${tempInitramfsDir}" --extract --keep-directory-symlink
+
+		#
+		# unmount the overlay
+		#
+		fusermount3 -u "${overlayDir}"
 
 		#
 		# copy modules

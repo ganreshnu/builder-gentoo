@@ -51,10 +51,11 @@ Main() {
 	argv+=( "$@" )
 	set - "${argv[@]}"
 
+	#
+	# mount the overlay
+	#
 	[[ -z "${args[build-dir]}" ]] && args[build-dir]="$(mktemp -d)" || mkdir -p "${args[build-dir]}"
-
-	local -r overlayDir=/tmp/overlay; mkdir "${overlayDir}"
-	mkdir -p "${args[workdir]}"
+	local -r overlayDir="$(mktemp -d)"; mkdir -p "${args[workdir]}"
 	fuse-overlayfs -o workdir="${args[workdir]}",lowerdir=$(Join : "$@"),upperdir="${args[build-dir]}" "${overlayDir}" || { >&2 Print 1 diskimage "mount failed"; return 1; }
 
 	# copy bootloader stuff
@@ -84,7 +85,12 @@ Main() {
 	# make a base / filesystem
 	local -r emptyDir="$(mktemp -d)"
 	tar --directory="${overlayDir}" --create --preserve-permissions "${excludes[@]}" efi usr \
-		|tar --directory="${emptyDir}" --extract --keep-directory-symlink --no-same-owner
+		|tar --directory="${emptyDir}" --extract --keep-directory-symlink
+
+	#
+	# unmount the overlay
+	#
+	fusermount3 -u "${overlayDir}"
 
 	local -r archivename="diskimage.raw"
 	rm -f "${overlayDir}"/"${archivename}"

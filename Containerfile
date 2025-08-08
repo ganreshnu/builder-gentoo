@@ -35,8 +35,8 @@ RUN emerge --pretend --update --deep --newuse --noreplace @world \
 	&& export MAKEOPTS="-j$(( $(nproc) / $jobs ))"; emerge --jobs=$jobs --update --deep --newuse --noreplace @world \
 	&& emerge --jobs=$jobs --depclean
 
-RUN emerge --pretend dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils net-misc/whois app-alternatives/ninja dev-build/meson dev-python/jinja2 dev-build/cmake dev-build/libtool \
-	&& emerge --jobs=$jobs dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils net-misc/whois app-alternatives/ninja dev-build/meson dev-python/jinja2 dev-build/cmake dev-build/libtool
+RUN emerge --pretend dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils net-misc/whois app-alternatives/ninja dev-build/meson dev-python/jinja2 dev-build/cmake dev-build/libtool sys-apps/bubblewrap \
+	&& emerge --jobs=$jobs dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils net-misc/whois app-alternatives/ninja dev-build/meson dev-python/jinja2 dev-build/cmake dev-build/libtool sys-apps/bubblewrap
 
 # remove the package.provided file as it can be bad system-wide
 RUN rm /etc/portage/profile/package.provided/!!-SYSTEM.provided
@@ -55,6 +55,9 @@ RUN cp -rT /etc/skel /root && mkdir -p /root/.config
 COPY fsroot.tar.zst /root/
 COPY locale.gen /etc/
 RUN locale-gen --update
+
+RUN echo root:100000:65536 >> /etc/subuid
+RUN echo root:100000:65536 >> /etc/subgid
 
 COPY scripts /usr/share/SYSTEM
 RUN cd /usr/bin; for f in ../share/SYSTEM/*.bash; do [[ -x "$f" ]] && { bn="$(basename $f)"; ln -s "$f" "${bn%.bash}"; } || true; done

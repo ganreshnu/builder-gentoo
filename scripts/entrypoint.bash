@@ -47,7 +47,7 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[jobs]="$value"
 				;;
-			kconfig|packages|initramfs|init|base )
+			kconfig|initramfs|init|base|packages )
 				cmdtype=script
 				break;
 				;;
@@ -93,8 +93,8 @@ Main() {
 	fi
 
 	if [[ $cmdtype == unshare ]]; then
-		exec unshare --mount --map-root-user "$@"
-		# --pid --fork --kill-child --user
+		exec unshare --user --keep-caps --mount --map-auto "$@"
+		# --pid --fork --kill-child --user --map-root-user
 	fi
 
 	# $cmdtype == script
