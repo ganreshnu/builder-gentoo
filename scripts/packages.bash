@@ -130,7 +130,7 @@ Main() {
 	# # mount the overlay
 	# #
 	# (( ${#basefs[@]} == 0 )) && basefs+=( /var/empty )
-	# [[ -z "${args[build-dir]}" ]] && args[build-dir]="$(mktemp -d)" || mkdir -p "${args[build-dir]}"
+	[[ -z "${args[build-dir]}" ]] && args[build-dir]="$(mktemp -d)" || mkdir -p "${args[build-dir]}"
 	# local -r overlayDir="$(mktemp -d)"; mkdir -p "${args[workdir]}"
 	# fuse-overlayfs -o workdir="${args[workdir]}",lowerdir=$(Join : "${basefs[@]}"),upperdir="${args[build-dir]}" "${overlayDir}" || { >&2 Print 1 diskimage "mount failed"; return 1; }
 	local -r overlayDir="${args[build-dir]}"

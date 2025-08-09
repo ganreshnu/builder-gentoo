@@ -93,7 +93,7 @@ Main() {
 	fi
 
 	if [[ $cmdtype == unshare ]]; then
-		exec unshare --user --keep-caps --mount --map-auto "$@"
+		exec unshare --user --keep-caps --mount --map-root-user "$@"
 		# --pid --fork --kill-child --user --map-root-user
 	fi
 

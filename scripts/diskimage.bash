@@ -21,6 +21,7 @@ Main() {
 		[split]=0
 		[build-dir]=
 		[workdir]=
+		[quiet]=
 	)
 	local argv=()
 	while (( $# > 0 )); do
@@ -72,8 +73,6 @@ Main() {
 	cp /boot/*-uc.img "${overlayDir}"/efi/
 	mkdir -p "${overlayDir}"/efi/grub
 	cp grub.cfg "${overlayDir}"/efi/grub/
-	Print 4 info "/efi is $(du -sh "${overlayDir}"/efi |cut -f1)"
-	Print 4 info "/usr is $(du -sh "${overlayDir}"/usr 2>/dev/null |cut -f1)"
 
 	local -r excludes=(
 		--exclude=efi/kconfig.zst
@@ -84,18 +83,29 @@ Main() {
 	)
 	# make a base / filesystem
 	local -r emptyDir="$(mktemp -d)"
+	SetupRoot "${emptyDir}"
+	mkdir -p "${emptyDir}"/{dev,etc,proc,run,sys,tmp}
 	tar --directory="${overlayDir}" --create --preserve-permissions "${excludes[@]}" efi usr \
-		|tar --directory="${emptyDir}" --extract --keep-directory-symlink
+		|tar --directory="${emptyDir}" --extract --keep-directory-symlink --no-same-owner
 
-	#
-	# unmount the overlay
-	#
-	fusermount3 -u "${overlayDir}"
+	ln -sf /usr/lib/systemd/systemd "${emptyDir}"/usr/bin/init
+	ls -lh "${emptyDir}"/sbin/init
+
+	Print 4 info "/efi is $(du -sh "${emptyDir}"/efi |cut -f1)"
+	Print 4 info "/usr is $(du -sh "${emptyDir}"/usr 2>/dev/null |cut -f1)"
+
+	Print 5 diskimage "os-release"
+	cat "${emptyDir}"/usr/lib/os-release
 
 	local -r archivename="diskimage.raw"
 	rm -f "${overlayDir}"/"${archivename}"
 	systemd-repart --definitions=repart.d --copy-source="${emptyDir}" --empty=create --size=auto --split="${args[split]}" "${overlayDir}"/"${archivename}"
 
 	rm -r "${emptyDir}"
+
+	#
+	# unmount the overlay
+	#
+	fusermount3 -u "${overlayDir}"
 }
 Main "$@"

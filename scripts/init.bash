@@ -70,16 +70,16 @@ Qemu() {
 
 		-drive if=pflash,format=raw,unit=0,file=/usr/share/edk2-ovmf/x64/OVMF.4m.fd,readonly=on
 		-drive if=pflash,format=raw,unit=1,file="${HOME}"/.var/OVMF_VARS.fd
-		-drive if=virtio,format=raw,file="${*}"
+		-drive if=none,id=usbstick,format=raw,file="${*}"
 
 		-vga virtio
 		-device qemu-xhci
 		-device usb-kbd
+		-device usb-storage,drive=bootdisk
 		-serial stdio
 	)
+		# -drive if=virtio,format=raw,file="${*}"
 		# -device virtio-gpu-gl,hostmem=8G,blob=true,venus=true
-		# -drive if=none,id=bootdisk,format=raw,file="${*}"
-		# -device usb-storage,drive=bootdisk
 
 	qemu-system-x86_64 "${qemu_args[@]}" 
 }
