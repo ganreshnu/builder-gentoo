@@ -56,9 +56,6 @@ COPY fsroot.tar.zst /root/
 COPY locale.gen /etc/
 RUN locale-gen --update
 
-RUN echo root:100000:65536 >> /etc/subuid
-RUN echo root:100000:65536 >> /etc/subgid
-
 COPY scripts /usr/share/SYSTEM
 RUN cd /usr/bin; for f in ../share/SYSTEM/*.bash; do [[ -x "$f" ]] && { bn="$(basename $f)"; ln -s "$f" "${bn%.bash}"; } || true; done
 ENTRYPOINT [ "/bin/entrypoint" ]
