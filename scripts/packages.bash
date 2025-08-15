@@ -8,15 +8,16 @@ Usage: $(basename ${BASH_SOURCE[0]}) [OPTIONS] PACKAGES
 
 Options:
   --quiet                    Run with limited output.
+  --kconfig DIRECTORY        Directory containing kernel configuration
+                             snippets. Defaults to './kconfig'.
   --nproc INT                Number of threads to use.
   --jobs INT                 Number of jobs to split threads among.
-  --build-dir DIRECTORY      Install the packages in this DIRECTORY.
-  --extra-dir DIRECTORY      Copy the contents of this DIRECTORY into /usr.
-  --portage-conf DIRECTORY   Use the specified DIRECTORY for portage
-                             configuration files.
-  --locale-gen FILE          Use FILE to generate the locale database.
   --workdir DIRECTORY        OverlayFS workdir which must be on the same
                              partition as the layer directories.
+  --build-dir DIRECTORY      Install the packages in this DIRECTORY.
+  --package-use FILE         Portage package.use file.
+  --extra-dir DIRECTORY      Copy the contents of this DIRECTORY into /usr.
+  --locale-gen FILE          Use FILE to generate the locale database.
   --help                     Display this message and exit.
 
 Builds and installs the packages.
@@ -28,14 +29,14 @@ Main() {
 		[kconfig]=
 		[nproc]=${BUILDER_NPROC}
 		[jobs]=${BUILDER_JOBS}
+		[workdir]=
 		[build-dir]=
 		[extra-dir]=
-		[portage-conf]=
 		[locale-gen]=
-		[workdir]=
 	)
 	local argv=()
 	local basefs=()
+	local package_use=()
 	while (( $# > 0 )); do
 		case "$1" in
 			--quiet )
@@ -56,30 +57,30 @@ Main() {
 				ExpectArg value count "$@"; shift $count
 				args[jobs]="$value"
 				;;
+			--workdir* )
+				local value= count=0
+				ExpectArg value count "$@"; shift $count
+				args[workdir]="$value"
+				;;
 			--build-dir* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
 				args[build-dir]="$value"
+				;;
+			--package-use* )
+				local value= count=0
+				ExpectArg value count "$@"; shift $count
+				package_use+=( "$value" )
 				;;
 			--extra-dir* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
 				args[extra-dir]="$value"
 				;;
-			--portage-conf* )
-				local value= count=0
-				ExpectArg value count "$@"; shift $count
-				args[portage-conf]="$value"
-				;;
 			--locale-gen* )
 				local value= count=0
 				ExpectArg value count "$@"; shift $count
 				args[locale-gen]="$value"
-				;;
-			--workdir* )
-				local value= count=0
-				ExpectArg value count "$@"; shift $count
-				args[workdir]="$value"
 				;;
 			--basefs* )
 				local value= count=0
@@ -133,7 +134,6 @@ Main() {
 	(( ${#basefs[@]} == 0 )) && basefs+=( /var/empty )
 	local -r overlayDir="$(mktemp -d)"; mkdir -p "${args[workdir]}"
 	fuse-overlayfs -o workdir="${args[workdir]}",lowerdir=$(Join : "${basefs[@]}"),upperdir="${args[build-dir]}" "${overlayDir}" || { >&2 Print 1 diskimage "mount failed"; return 1; }
-	# local -r overlayDir="${args[build-dir]}"
 
 	#
 	# create and setup the build dir
@@ -159,9 +159,9 @@ Main() {
 	#
 	[[ -n "${args[locale-gen]}" && -x "${overlayDir}"/usr/bin/localedef ]] && GenerateLocales "${args[locale-gen]}" "${overlayDir}" || true
 
-	# #
-	# # unmount the overlay
-	# #
+	#
+	# unmount the overlay
+	#
 	fusermount3 -u "${overlayDir}"
 
 	#

@@ -39,7 +39,7 @@ RUN emerge --pretend dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub
 	&& emerge --jobs=$jobs dev-lang/ocaml x11-libs/pixman sys-power/iasl sys-boot/grub app-emulation/xen sys-fs/dosfstools sys-fs/mtools sys-fs/fuse-overlayfs sys-fs/erofs-utils net-misc/whois app-alternatives/ninja dev-build/meson dev-python/jinja2 dev-build/cmake dev-build/libtool sys-apps/bubblewrap
 
 # remove the package.provided file as it can be bad system-wide
-RUN rm /etc/portage/profile/package.provided/!!-SYSTEM.provided
+# RUN rm /etc/portage/profile/package.provided/!!-SYSTEM.provided
 # make the initramfs builder
 RUN cd /usr/src/linux && make -C usr gen_init_cpio
 
@@ -58,8 +58,8 @@ RUN locale-gen --update
 
 COPY scripts /usr/share/SYSTEM
 RUN cd /usr/bin; for f in ../share/SYSTEM/*.bash; do [[ -x "$f" ]] && { bn="$(basename $f)"; ln -s "$f" "${bn%.bash}"; } || true; done
-ENTRYPOINT [ "/bin/entrypoint" ]
-# ENTRYPOINT [ "unshare", "--map-root-user", "--mount", "/bin/entrypoint" ]
+# ENTRYPOINT [ "/bin/entrypoint" ]
+ENTRYPOINT [ "unshare", "--mount", "--map-users=all", "--map-groups=all", "/bin/entrypoint" ]
 
 # RUN eselect news read --quiet \
 #  && eselect news purge
